@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework import routers
 from tasks import views
 from .views import TaskViewSet
+from .views import TaskAssignView 
 
 app_name = 'tasks'
 
@@ -22,4 +23,5 @@ urlpatterns = [
     # Add the registration endpoint
     path('register/', views.register, name='register'),  
      path('login/', views.login, name='login'), 
+     path('assign-task/', TaskAssignView.as_view(), name='assign_task'),
 ]

@@ -5,12 +5,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer
+from .serializers import TaskSerializer
 import csv
 from django.http import JsonResponse
 
 from rest_framework import viewsets
 from .models import Task
 from .serializers import TaskSerializer
+from rest_framework import generics,permissions
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
@@ -36,18 +38,31 @@ def register(request):
 @api_view(['POST'])
 def login_view(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        username = data.get('username')
-        password = data.get('password')
-        
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
-            # You can return a token or user info
-            return JsonResponse({'message': 'Login successful', 'user_id': user.id}, status=200)
+            # You can return any response you need, including user info if necessary
+            return JsonResponse({'success': True})
         else:
-            return JsonResponse({'error': 'Invalid username or password'}, status=400)
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+            return JsonResponse({'success': False, 'error': 'Invalid credentials'}, status=400)
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+@api_view(['POST'])
+def admin_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(username=username, password=password)
+
+    if user is not None and user.userprofile.is_admin:
+        # Login successful for admin user
+        return Response({'message': 'Login successful'}, status=status.HTTP_200_OK)
+    else:
+        # Login failed
+        return Response({'error': 'Invalid credentials or user is not an admin.'}, status=status.HTTP_403_FORBIDDEN)
+    
 def my_tasks(request):
     # Logic to get the user's tasks
     tasks = Task.objects.filter(user=request.user)
@@ -104,3 +119,19 @@ def login(request):
     else:
         # Invalid credentials
         return JsonResponse({'error': 'Invalid username or password'}, status=400)
+
+class TaskAssignView(generics.CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Ensure the user is an admin before assigning tasks
+        if self.request.user.userprofile.is_admin:
+            serializer.save(user=self.request.data.get('assigned_to'))  # Get assigned user from request data
+        else:
+            raise permissions.PermissionDenied("You do not have permission to assign tasks.")
+
+    def post(self, request, *args, **kwargs):
+        if request.user.userprofile.is_admin:
+            return super().post(request, *args, **kwargs)
+        else:
+            return Response({'error': 'You do not have permission to assign tasks.'}, status=status.HTTP_403_FORBIDDEN)
