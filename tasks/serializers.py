@@ -3,7 +3,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from rest_framework import serializers
 from .models import Task
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -15,13 +14,13 @@ class TaskSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'password']  # You can add more fields if needed
+        fields = ['id', 'username', 'password', 'email', 'is_staff', 'is_superuser']
+        extra_kwargs = {
+            'password': {'write_only': True}  # Password should not be read
+        }
 
     def create(self, validated_data):
-        user = User(
-            username=validated_data['username'],
-            # You should also hash the password before saving
-        )
-        user.set_password(validated_data['password'])  # Hashing the password
+        user = User(**validated_data)
+        user.set_password(validated_data['password'])  # Hash the password
         user.save()
         return user

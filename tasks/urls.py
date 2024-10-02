@@ -3,6 +3,12 @@ from rest_framework import routers
 from tasks import views
 from .views import TaskViewSet
 from .views import TaskAssignView 
+from .views import UserViewSet, TaskViewSet, TaskAssignView, assign_self_task
+from django.urls import path
+from .views import dashboard
+from .views import TaskList
+
+
 
 app_name = 'tasks'
 
@@ -20,8 +26,12 @@ urlpatterns = [
     path('export/csv/', views.save_as_csv, name='save-as-csv'),
     path('export/xls/', views.save_as_xls, name='save-as-xls'),
     
-    # Add the registration endpoint
+    #  endpoints
     path('register/', views.register, name='register'),  
      path('login/', views.login, name='login'), 
      path('assign-task/', TaskAssignView.as_view(), name='assign_task'),
+     path('api/assign-self-task/', assign_self_task, name='assign_self_task'),
+     path('dashboard/', dashboard, name='dashboard'),  
+     path('api/tasks/', TaskList.as_view(), name='task-list'),
+   
 ]
